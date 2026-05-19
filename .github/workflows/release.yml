@@ -2,8 +2,8 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - master
   workflow_dispatch:
 
 permissions:
@@ -22,24 +22,26 @@ jobs:
       - name: Install dependencies
         run: npm ci || npm install
 
+      - name: Compute version
+        id: ver
+        run: |
+          short=$(git rev-parse --short HEAD)
+          stamp=$(date -u +%Y.%m.%d.%H%M)
+          echo "short=$short" >> "$GITHUB_OUTPUT"
+          echo "version=$stamp.$short" >> "$GITHUB_OUTPUT"
+
       - name: Build
         env:
-          SCRIPT_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+          SCRIPT_VERSION: ${{ steps.ver.outputs.version }}
           DOWNLOAD_URL: ${{ github.server_url }}/${{ github.repository }}/releases/latest/download/link-cleaner.user.js
           UPDATE_URL: ${{ github.server_url }}/${{ github.repository }}/releases/latest/download/link-cleaner.user.js
         run: npm run build
 
       - name: Create Release
-        if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: build-${{ steps.ver.outputs.short }}
+          name: build-${{ steps.ver.outputs.short }}
           files: dist/link-cleaner.user.js
           generate_release_notes: true
           fail_on_unmatched_files: true
-
-      - name: Upload artifact (manual run)
-        if: github.ref_type != 'tag'
-        uses: actions/upload-artifact@v4
-        with:
-          name: link-cleaner
-          path: dist/link-cleaner.user.js
