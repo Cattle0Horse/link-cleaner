@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Build
+        env:
+          SCRIPT_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+          DOWNLOAD_URL: ${{ github.server_url }}/${{ github.repository }}/releases/latest/download/link-cleaner.user.js
+          UPDATE_URL: ${{ github.server_url }}/${{ github.repository }}/releases/latest/download/link-cleaner.user.js
+        run: npm run build
+
+      - name: Create Release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/link-cleaner.user.js
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+
+      - name: Upload artifact (manual run)
+        if: github.ref_type != 'tag'
+        uses: actions/upload-artifact@v4
+        with:
+          name: link-cleaner
+          path: dist/link-cleaner.user.js

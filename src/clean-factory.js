@@ -1,5 +1,5 @@
 /** @type {(input: RequestInfo, init?: RequestInit) => Promise<Response>} */
-const fetch = globalThis.ENV === 'userscript' ? globalThis.GM_fetch : globalThis.fetch;
+const fetch = globalThis.GM_fetch || globalThis.fetch;
 
 /** @typedef {(url: URL) => (URL | void | Promise<URL|void>)} cleanFunction */
 
@@ -53,9 +53,9 @@ export default {
     getRedirect: async url => {
         const resp = await fetch(url, {
             redirect: 'manual',
-            credentials: globalThis.ENV === 'cfworker' ? undefined : 'omit',
+            credentials: 'omit',
         });
-        return globalThis.ENV === 'userscript' ? new URL(resp.url) : (resp.headers.has('location') ? new URL(resp.headers.get('location')) : url);
+        return new URL(resp.url);
     },
     /**
      * @param {(s: String) => String} fn
@@ -64,7 +64,7 @@ export default {
     getRedirectFromBody: fn => async url => {
         const resp = await fetch(url, {
             redirect: 'manual',
-            credentials: globalThis.ENV === 'cfworker' ? undefined : 'omit',
+            credentials: 'omit',
         }).then(r => r.text());
         return new URL(fn(resp));
     },

@@ -1,5 +1,7 @@
 # link-cleaner
 
+> Forked from [TransparentLC/link-cleaner](https://github.com/TransparentLC/link-cleaner)
+
 网站链接清洗器。
 
 这个项目受油猴脚本[“Open the F**king URL Right Now”](https://greasyfork.org/zh-CN/scripts/412612)和[“redirect 外链跳转”](https://greasyfork.org/zh-CN/scripts/416338)的启发，作用是对以下类型的超链接进行“净化”处理：
@@ -16,44 +18,21 @@
 
 ## 使用方式
 
-提供油猴脚本和 Cloudflare Workers 两种使用方式。
+在 Violentmonkey / Tampermonkey 中安装：
 
-### 油猴脚本
-
-https://i.akarin.dev/link-cleaner.user.js
+https://github.com/Cattle0Horse/link-cleaner/releases/latest/download/link-cleaner.user.js
 
 脚本会对网页上所有 `<a>` 标签指向的链接进行清洗。如果你当前打开的页面的 URL 本身可以被清洗，则脚本也会自动跳转到清洗过的 URL。
 
 也可以在菜单中选择手动清洗网页上的所有链接（用于动态添加 `<a>` 标签的情况）。此外，还附带了复制当前页面的标题和网址的功能。
 
-### Cloudflare Workers
-
-https://i.akarin.dev/link-cleaner/?url=https://example.com/
-
-https://i.akarin.dev/link-cleaner/?title&url=https://example.com/
-
-使用 `url` 参数输入链接，将返回清洗后的结果。
-
-如果需要获取这个链接对应的网页的标题（`<title>`），可以在请求时添加 `title` 参数。
-
-也可以使用 `POST` 发送带有链接的文本，将文本中的链接清洗后返回。
-
-```sh
-curl \
-    --data-raw \
-    "【淘宝】https://m.tb.cn/h.5Iub7ZVrhwMSERL?sm=xxxxxx?tk=xxxxxxxxxxx ZH4920 「【AmiAmi】Gift 东方 古明地恋 古明地觉 东风谷早苗 fumo」点击链接直接打开 或者 淘宝搜索直接打开" \
-    https://i.akarin.dev/link-cleaner/
-
-# 【淘宝】https://item.taobao.com/item.htm?id=754327895246 ZH4920 「【AmiAmi】Gift 东方 古明地恋 古明地觉 东风谷早苗 fumo」点击链接直接打开 或者 淘宝搜索直接打开
-```
+新版本通过 GitHub Release 发布，脚本管理器会自动检查更新。
 
 ## 自行修改
 
 ### 编译
 
-`src/entry-userscript.js` 和 `src/entry-cfworker.js` 分别是适用于油猴脚本和 Cloudflare Workers 的相关代码。如果需要将清洗功能用于其它用途，也可以直接导入 `src/link-cleaner.js` 中的函数。
-
-运行 `npm run build` 就可以在 `dist` 目录找到 `link-cleaner.user.js` 和 `link-cleaner.cfworker.js` 两个编译出的文件了。
+运行 `npm run build` 后，在 `dist/link-cleaner.user.js` 即可得到编译出的脚本。
 
 ### 编辑清洗规则
 

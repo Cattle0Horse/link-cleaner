@@ -1,23 +1,30 @@
 import esbuild from 'esbuild';
 
+const version = (() => {
+    if (process.env.SCRIPT_VERSION) return process.env.SCRIPT_VERSION.replace(/^v/, '');
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getUTCFullYear()}.${pad(d.getUTCMonth() + 1)}.${pad(d.getUTCDate())}.${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}`;
+})();
+const downloadURL = process.env.DOWNLOAD_URL || 'https://github.com/Cattle0Horse/link-cleaner/releases/latest/download/link-cleaner.user.js';
+const updateURL = process.env.UPDATE_URL || downloadURL;
+
 esbuild.buildSync({
     entryPoints: ['src/entry-userscript.js'],
     outfile: 'dist/link-cleaner.user.js',
     charset: 'utf8',
     bundle: true,
     minify: true,
-    define: {
-        'globalThis.ENV': '"userscript"',
-    },
     banner: {
         js: `
             // ==UserScript==
             // @name        Link Cleaner
-            // @version     ${(new Date).toISOString()}
-            // @author      TransparentLC
+            // @version     ${version}
+            // @author      Cattle0Horse
             // @description 清洗网页上带有各种跟踪参数的链接
-            // @source      https://github.com/TransparentLC/link-cleaner
-            // @downloadURL https://i.akarin.dev/link-cleaner.user.js
+            // @source      https://github.com/Cattle0Horse/link-cleaner
+            // @downloadURL ${downloadURL}
+            // @updateURL   ${updateURL}
             // @match       *://*/*
             // @connect     *
             // @grant       GM_getValue

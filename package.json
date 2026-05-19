@@ -1,26 +1,18 @@
 {
   "name": "link-cleaner",
-  "author": "TransparentLC",
-  "repository": "github:TransparentLC/link-cleaner",
+  "author": "Cattle0Horse",
+  "repository": "github:Cattle0Horse/link-cleaner",
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "main": "src/link-cleaner.js",
   "engines": {
     "node": ">=17.5.0"
   },
-  "bin": {
-    "link-cleaner": "src/entry-cli.js"
-  },
   "scripts": {
     "test": "node test.js",
-    "build": "run-p build-cfworker build-userscript",
-    "build-cfworker": "node build-cfworker.js",
-    "build-userscript": "node build-userscript.js",
-    "dev-cfworker": "wrangler dev dist/link-cleaner.cfworker.js --no-bundle"
+    "build": "node build-userscript.js"
   },
   "devDependencies": {
-    "esbuild": "^0.27.2",
-    "npm-run-all": "^4.1.5",
-    "wrangler": "^4.56.0"
+    "esbuild": "^0.27.2"
   }
 }

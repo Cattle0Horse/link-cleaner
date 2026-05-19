@@ -359,17 +359,17 @@ export default [
             async url => {
                 const resp1 = await fetch(url, {
                     redirect: 'manual',
-                    credentials: globalThis.ENV === 'cfworker' ? undefined : 'omit',
+                    credentials: 'omit',
                 });
                 url = new URL((await resp1.text()).match(/var real_jump_address = '(.+?)'/)[1].replaceAll('&amp;', '&'));
                 const resp2 = await fetch(url, {
                     redirect: 'manual',
-                    credentials: globalThis.ENV === 'cfworker' ? undefined : 'omit',
+                    credentials: 'omit',
                     headers: {
                         Referer: 'https://s.click.taobao.com/',
                     },
                 });
-                return globalThis.ENV === 'userscript' ? new URL(resp2.url) : (resp2.headers.has('location') ? new URL(resp2.headers.get('location')) : url);
+                return new URL(resp2.url);
             },
             cleanFactory.urlDecodeSearchParam('tar'),
         ),
@@ -828,10 +828,10 @@ export default [
         clean: async url => {
             const resp = await fetch(url, {
                 redirect: 'manual',
-                credentials: globalThis.ENV === 'cfworker' ? undefined : 'omit',
+                credentials: 'omit',
             });
             if (resp.status === 301) {
-                return globalThis.ENV === 'userscript' ? new URL(resp.url) : (resp.headers.has('location') ? new URL(resp.headers.get('location')) : url);
+                return new URL(resp.url);
             } else {
                 const body = await resp.text();
                 return new URL(body.match(/<p class="url">(.+?)<\/p>/)[1]);
@@ -910,5 +910,13 @@ export default [
             url => url.searchParams.get('t') === 'pages/wapredirect',
         ),
         clean: cleanFactory.urlDecodeSearchParam('url'),
+    },
+    {
+        name: 'BestBlogs link',
+        match: matchFactory.chain(
+            matchFactory.hostpath('www.bestblogs.dev', null),
+            matchFactory.hasSearchParam('entry'),
+        ),
+        clean: cleanFactory.blacklist(new Set(['entry'])),
     },
 ];
