@@ -917,6 +917,6 @@ export default [
             matchFactory.hostpath('www.bestblogs.dev', null),
             matchFactory.hasSearchParam('entry'),
         ),
-        clean: cleanFactory.blacklist(new Set(['entry'])),
+        clean: cleanFactory.blacklist(new Set(['entry', 'from'])),
     },
 ];
