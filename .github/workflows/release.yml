@@ -37,13 +37,13 @@ jobs:
           UPDATE_URL: ${{ github.server_url }}/${{ github.repository }}/releases/latest/download/link-cleaner.meta.js
         run: npm run build
 
-      - name: Create Release
+      - name: Create or update latest release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: build-${{ steps.ver.outputs.short }}
-          name: build-${{ steps.ver.outputs.short }}
+          tag_name: latest
+          name: Latest
           files: |
             dist/link-cleaner.user.js
             dist/link-cleaner.meta.js
-          generate_release_notes: true
           fail_on_unmatched_files: true
+          overwrite_files: true
