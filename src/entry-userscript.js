@@ -17,6 +17,14 @@ const cleanLinkForDOM = e => {
         .catch(err => console.warn('Link cleaner:', e, e.href, 'Failed to clean', err));
 }
 
+/**
+ * @param {Node} e
+ */
+const cleanLinksForDOM = e => {
+    if (e instanceof HTMLAnchorElement) cleanLinkForDOM(e);
+    if (e instanceof Element) e.querySelectorAll('a').forEach(cleanLinkForDOM);
+}
+
 setTimeout(() => [
     ...document.querySelectorAll('[data-spm]'),
     ...document.querySelectorAll('[data-spm-anchor-id]'),
@@ -25,20 +33,40 @@ setTimeout(() => [
     e.removeAttribute('data-spm-anchor-id');
 }), 1000);
 
-cleanLink(location.href).then(e => {
-    if (e.toString() !== location.href) {
-        document.head.innerHTML = '';
-        document.body.innerHTML = `<div style="display:flex;height:100vh;flex-direction:column;justify-content:center;align-items:center"><div style="margin:.25em">链接已清洗，即将跳转到以下地址</div><small style="margin:.25em">${e}</small></div>`;
-        return location.href = e.toString();
+const cleanLocation = (replace = false) => cleanLink(location.href).then(e => {
+    const cleaned = e.toString();
+    if (cleaned === location.href) return false;
+    if (replace) {
+        history.replaceState(history.state, '', cleaned);
+        return true;
     }
+    document.head.innerHTML = '';
+    document.body.innerHTML = `<div style="display:flex;height:100vh;flex-direction:column;justify-content:center;align-items:center"><div style="margin:.25em">链接已清洗，即将跳转到以下地址</div><small style="margin:.25em">${e}</small></div>`;
+    location.href = cleaned;
+    return true;
+});
 
-    Array.from(document.querySelectorAll('a')).forEach(cleanLinkForDOM);
+cleanLocation().then(cleaned => {
+    if (cleaned) return;
+
+    for (const name of ['pushState', 'replaceState']) {
+        const fn = history[name];
+        history[name] = function () {
+            const r = fn.apply(this, arguments);
+            setTimeout(() => cleanLocation(true));
+            return r;
+        }
+    }
+    addEventListener('popstate', () => setTimeout(() => cleanLocation(true)));
+
+    document.querySelectorAll('a').forEach(cleanLinkForDOM);
 
     // Experimental
     const observerTarget = document.body || document.documentElement;
     if (observerTarget) new MutationObserver(mutationList => {
         for (const mutation of mutationList) {
-            cleanLinkForDOM(mutation.target);
+            cleanLinksForDOM(mutation.target);
+            mutation.addedNodes.forEach(cleanLinksForDOM);
         }
     }).observe(observerTarget, {
         attributes: true,
@@ -99,7 +127,7 @@ GM.registerMenuCommand('手动输入链接进行清洗', async () => {
     }
 });
 
-GM.registerMenuCommand('重新清洗网页上的所有链接', () => Array.from(document.querySelectorAll('a')).forEach(cleanLinkForDOM));
+GM.registerMenuCommand('重新清洗网页上的所有链接', () => document.querySelectorAll('a').forEach(cleanLinkForDOM));
 GM.registerMenuCommand('复制标题和网址', () => {
     if (window.top !== window.self) return;
     const text = `${document.title.trim()}\n${location.href}`;
