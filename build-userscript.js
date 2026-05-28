@@ -20,11 +20,16 @@ const userscriptHeader = `
     // @updateURL   ${updateURL}
     // @match       *://*/*
     // @connect     *
+    // @grant       GM.getValue
+    // @grant       GM.registerMenuCommand
+    // @grant       GM.setClipboard
+    // @grant       GM.setValue
     // @grant       GM_getValue
     // @grant       GM_registerMenuCommand
     // @grant       GM_setClipboard
     // @grant       GM_setValue
     // @grant       GM_xmlhttpRequest
+    // @grant       unsafeWindow
     // ==/UserScript==
 `.trim().split('\n').map(e => e.trim()).join('\n');
 

@@ -6,13 +6,16 @@ import cleanLink from './link-cleaner.js';
 /**
  * @param {HTMLAnchorElement} e
  */
-const cleanLinkForDOM = e => e.href && cleanLink(e.href)
-    .then(t => {
-        const r = t.toString()
-        if (e.href === r) return;
-        console.log('Link cleaner:', e, e.href, '->', (e.href = t.toString()));
-    })
-    .catch(err => console.warn('Link cleaner:', e, e.href, 'Failed to clean', err));
+const cleanLinkForDOM = e => {
+    if (!(e instanceof HTMLAnchorElement) || !e.href) return;
+    return cleanLink(e.href)
+        .then(t => {
+            const r = t.toString()
+            if (e.href === r) return;
+            console.log('Link cleaner:', e, e.href, '->', (e.href = t.toString()));
+        })
+        .catch(err => console.warn('Link cleaner:', e, e.href, 'Failed to clean', err));
+}
 
 setTimeout(() => [
     ...document.querySelectorAll('[data-spm]'),
@@ -32,14 +35,12 @@ cleanLink(location.href).then(e => {
     Array.from(document.querySelectorAll('a')).forEach(cleanLinkForDOM);
 
     // Experimental
-    new MutationObserver(mutationList => {
+    const observerTarget = document.body || document.documentElement;
+    if (observerTarget) new MutationObserver(mutationList => {
         for (const mutation of mutationList) {
-            if (mutation.target.nodeName === 'A') {
-                // console.log('Link Cleaner', mutation.target, mutation.oldValue, mutation.target.href);
-                cleanLinkForDOM(mutation.target);
-            }
+            cleanLinkForDOM(mutation.target);
         }
-    }).observe(document.body, {
+    }).observe(observerTarget, {
         attributes: true,
         attributeFilter: ['href'],
         // attributeOldValue: true,
