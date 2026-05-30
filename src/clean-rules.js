@@ -427,14 +427,14 @@ export default [
             cleanFactory.blacklist(new Set(['timestamp'])),
         ),
     },
-    {
-        name: 'Bilibili video',
-        match: url => (url.hostname === 'www.bilibili.com' || url.hostname === 'm.bilibili.com') && /^\/video\/[Bb][Vv][A-HJ-NP-Za-km-z1-9]{10}\/?$/.test(url.pathname),
-        clean: cleanFactory.chain(
-            cleanFactory.whitelist(new Set),
-            cleanFactory.bv2av,
-        ),
-    },
+    // {
+    //     name: 'Bilibili video BV 号转 AV 号',
+    //     match: url => (url.hostname === 'www.bilibili.com' || url.hostname === 'm.bilibili.com') && /^\/video\/[Bb][Vv][A-HJ-NP-Za-km-z1-9]{10}\/?$/.test(url.pathname),
+    //     clean: cleanFactory.chain(
+    //         cleanFactory.whitelist(new Set),
+    //         cleanFactory.bv2av,
+    //     ),
+    // },
     {
         name: 'Douyin short link',
         match: matchFactory.hostpathRegex('v.douyin.com', /^\/[\dA-Za-z]+\/?$/),
