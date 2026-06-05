@@ -37,6 +37,11 @@ jobs:
           UPDATE_URL: ${{ github.server_url }}/${{ github.repository }}/releases/latest/download/link-cleaner.meta.js
         run: npm run build
 
+      - name: Move latest tag to current commit
+        run: |
+          git tag -f latest "${GITHUB_SHA}"
+          git push -f origin refs/tags/latest
+
       - name: Create or update latest release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
@@ -47,3 +52,4 @@ jobs:
             dist/link-cleaner.meta.js
           fail_on_unmatched_files: true
           overwrite_files: true
+          make_latest: true
