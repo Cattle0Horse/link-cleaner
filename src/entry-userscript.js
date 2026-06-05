@@ -61,8 +61,6 @@ const cleanLocation = (replace = false) => cleanLink(location.href).then(e => {
         history.replaceState(history.state, '', cleaned);
         return true;
     }
-    document.head.innerHTML = '';
-    document.body.innerHTML = `<div style="display:flex;height:100vh;flex-direction:column;justify-content:center;align-items:center"><div style="margin:.25em">链接已清洗，即将跳转到以下地址</div><small style="margin:.25em">${e}</small></div>`;
     location.href = cleaned;
     return true;
 });
