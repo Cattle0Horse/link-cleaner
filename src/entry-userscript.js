@@ -1,14 +1,32 @@
 import './GM_fetch.js';
 import cleanLink from './link-cleaner.js';
 
+const HOST_CLEAN_MODE_KEY = 'hostCleanMode';
+const HOST_CLEAN_MODE_BLACKLIST = 'blacklist';
+const HOST_CLEAN_MODE_WHITELIST = 'whitelist';
 const DISABLED_HOST_KEY_PREFIX = 'disabledHost:';
+const ENABLED_HOST_KEY_PREFIX = 'enabledHost:';
 
 const getCurrentHostname = () => location.hostname.toLowerCase();
 
-const getCurrentDisabledHostKey = () => {
+const getCurrentHostKey = prefix => {
     const hostname = getCurrentHostname();
-    return hostname && DISABLED_HOST_KEY_PREFIX + hostname;
+    return hostname && prefix + hostname;
 }
+
+const getCurrentDisabledHostKey = () => getCurrentHostKey(DISABLED_HOST_KEY_PREFIX);
+
+const getCurrentEnabledHostKey = () => getCurrentHostKey(ENABLED_HOST_KEY_PREFIX);
+
+const getHostCleanMode = async () => {
+    const mode = await GM.getValue(HOST_CLEAN_MODE_KEY, HOST_CLEAN_MODE_BLACKLIST);
+    return mode === HOST_CLEAN_MODE_WHITELIST ? HOST_CLEAN_MODE_WHITELIST : HOST_CLEAN_MODE_BLACKLIST;
+}
+
+const setHostCleanMode = async mode => GM.setValue(
+    HOST_CLEAN_MODE_KEY,
+    mode === HOST_CLEAN_MODE_WHITELIST ? HOST_CLEAN_MODE_WHITELIST : HOST_CLEAN_MODE_BLACKLIST
+);
 
 const isCurrentHostDisabled = async () => {
     const key = getCurrentDisabledHostKey();
@@ -20,6 +38,35 @@ const setCurrentHostDisabled = async disabled => {
     if (!key) return false;
     await GM.setValue(key, !!disabled);
     return true;
+}
+
+const isCurrentHostEnabled = async () => {
+    const key = getCurrentEnabledHostKey();
+    return !!key && !!await GM.getValue(key, false);
+}
+
+const setCurrentHostEnabled = async enabled => {
+    const key = getCurrentEnabledHostKey();
+    if (!key) return false;
+    await GM.setValue(key, !!enabled);
+    return true;
+}
+
+const getCurrentHostCleanStatus = async () => {
+    const hostname = getCurrentHostname();
+    const mode = await getHostCleanMode();
+
+    if (!hostname) {
+        return {hostname, mode, disabled: false, enabled: false, shouldClean: true};
+    }
+
+    if (mode === HOST_CLEAN_MODE_WHITELIST) {
+        const enabled = await isCurrentHostEnabled();
+        return {hostname, mode, disabled: false, enabled, shouldClean: enabled};
+    }
+
+    const disabled = await isCurrentHostDisabled();
+    return {hostname, mode, disabled, enabled: false, shouldClean: !disabled};
 }
 
 // 处理<a>标签
@@ -135,8 +182,8 @@ const startXhookIfEnabled = async () => {
 }
 
 // 添加右键菜单
-const registerMenus = async currentHostDisabled => {
-    const hostname = getCurrentHostname();
+const registerMenus = async currentHostStatus => {
+    const {hostname, mode, disabled, enabled, shouldClean} = currentHostStatus;
 
     GM.registerMenuCommand('手动输入链接进行清洗', async () => {
         if (window.top !== window.self) return;
@@ -154,47 +201,64 @@ const registerMenus = async currentHostDisabled => {
         }
     });
 
+    const isWhitelistMode = mode === HOST_CLEAN_MODE_WHITELIST;
+    GM.registerMenuCommand(
+        '网站清洗模式：' + (isWhitelistMode ? '白名单' : '黑名单'),
+        async () => {
+            const nextMode = isWhitelistMode ? HOST_CLEAN_MODE_BLACKLIST : HOST_CLEAN_MODE_WHITELIST;
+            await setHostCleanMode(nextMode);
+        }
+    );
+
     if (hostname) {
-        GM.registerMenuCommand((currentHostDisabled ? '重新启用当前网站清洗' : '在当前网站禁用清洗') + `（${hostname}，刷新后生效）`, async () => {
-            const disabled = await isCurrentHostDisabled();
-            const succeeded = await setCurrentHostDisabled(!disabled);
-            if (!succeeded) {
-                alert('当前页面不支持按网站禁用清洗。');
-                return;
-            }
-            alert(`已${disabled ? '重新启用' : '在当前网站禁用'}清洗：${hostname}\n刷新后生效。`);
-        });
+        if (isWhitelistMode) {
+            GM.registerMenuCommand((enabled ? '❌禁用当前网站清洗' : '✅启用当前网站清洗') + `（${hostname}）`, async () => {
+                const enabled = await isCurrentHostEnabled();
+                const succeeded = await setCurrentHostEnabled(!enabled);
+                if (!succeeded) {
+                    alert('当前页面不支持按网站设置清洗白名单');
+                    return;
+                }
+            });
+        } else {
+            GM.registerMenuCommand((disabled ? '✅启用当前网站清洗' : '❌禁用当前网站清洗') + `（${hostname}）`, async () => {
+                const disabled = await isCurrentHostDisabled();
+                const succeeded = await setCurrentHostDisabled(!disabled);
+                if (!succeeded) {
+                    alert('当前页面不支持按网站禁用清洗');
+                    return;
+                }
+            });
+        }
     }
 
-    if (!currentHostDisabled) {
+    if (shouldClean) {
         GM.registerMenuCommand('重新清洗网页上的所有链接', () => document.querySelectorAll('a').forEach(cleanLinkForDOM));
     }
     GM.registerMenuCommand('复制标题和网址', () => {
         if (window.top !== window.self) return;
         const text = `${document.title.trim()}\n${location.href}`;
         GM.setClipboard(text);
-        alert(`已复制：\n${text}`);
     });
     GM.registerMenuCommand('复制标题和网址（Markdown）', () => {
         if (window.top !== window.self) return;
         const text = `[${document.title.trim()}](${location.href})`;
         GM.setClipboard(text);
-        alert(`已复制：\n${text}`);
     });
     const xhookEnabled = await GM.getValue('xhookEnabled');
     GM.registerMenuCommand('增强清洗模式（xhr/fetch请求，切换后刷新生效）' + (xhookEnabled ? '✅' : '❌'), async () => GM.setValue('xhookEnabled', !xhookEnabled));
 }
 
 (async () => {
-    const currentHostDisabled = await isCurrentHostDisabled();
+    const currentHostStatus = await getCurrentHostCleanStatus();
 
-    if (currentHostDisabled) {
-        console.log('Link cleaner:', 'Disabled on current host:', getCurrentHostname());
+    if (!currentHostStatus.shouldClean) {
+        console.log('Link cleaner:', 'Disabled on current host:', currentHostStatus.hostname, 'Mode:', currentHostStatus.mode);
     } else {
         cleanSpmAttributes();
         startAutoClean();
         startXhookIfEnabled().catch(err => console.warn('Link cleaner:', 'Failed to load xhook', err));
     }
 
-    await registerMenus(currentHostDisabled);
+    await registerMenus(currentHostStatus);
 })()
