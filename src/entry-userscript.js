@@ -151,36 +151,6 @@ const startAutoClean = () => cleanLocation().then(cleaned => {
     setupMutationObserver();
 });
 
-// 处理fetch和XMLHttpRequest（使用xhook）
-const startXhookIfEnabled = async () => {
-    if (!await GM.getValue('xhookEnabled')) return;
-
-    /** @type {String} */
-    let xhookScript;
-    if (await GM.getValue('xhookCacheBefore', 0) < Date.now() || !(xhookScript = await GM.getValue('xhookCached'))) {
-        console.log('Link cleaner:', 'Fetching xhook from jsdelivr ...');
-        await GM.setValue('xhookCached', (xhookScript = await fetch('https://cdn.jsdelivr.net/npm/xhook@1/dist/xhook.min.js').then(r => r.text())));
-        await GM.setValue('xhookCacheBefore', Date.now() + 6048e5); // 86400 * 7 * 1000
-    } else {
-        console.log('Link cleaner:', 'Loading xhook from cache ...', 'Expire:', new Date(await GM.getValue('xhookCacheBefore')));
-    }
-    // Shamefully use eval to run code from string
-    (0, unsafeWindow.eval)(xhookScript);
-    console.log('Link cleaner:', 'xhook is loaded!');
-    unsafeWindow.xhook.before(async (request, callback) => {
-        let u = request.url;
-        if (typeof u === 'string' && !URL.canParse(u)) {
-            u = location.origin + (u.startsWith('/') ? '' : '/') + u;
-            console.log(u);
-        }
-        const r = (await cleanLink(u)).toString();
-        if (u.toString() !== r) {
-            console.log('Link cleaner:', 'xhook', u.toString(), '->', (request.url = r));
-        }
-        callback();
-    });
-}
-
 // 添加右键菜单
 const registerMenus = async currentHostStatus => {
     const {hostname, mode, disabled, enabled, shouldClean} = currentHostStatus;
@@ -245,8 +215,6 @@ const registerMenus = async currentHostStatus => {
         const text = `[${document.title.trim()}](${location.href})`;
         GM.setClipboard(text);
     });
-    const xhookEnabled = await GM.getValue('xhookEnabled');
-    GM.registerMenuCommand('增强清洗模式（xhr/fetch请求，切换后刷新生效）' + (xhookEnabled ? '✅' : '❌'), async () => GM.setValue('xhookEnabled', !xhookEnabled));
 }
 
 (async () => {
@@ -257,7 +225,6 @@ const registerMenus = async currentHostStatus => {
     } else {
         cleanSpmAttributes();
         startAutoClean();
-        startXhookIfEnabled().catch(err => console.warn('Link cleaner:', 'Failed to load xhook', err));
     }
 
     await registerMenus(currentHostStatus);

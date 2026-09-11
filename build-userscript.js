@@ -29,7 +29,6 @@ const userscriptHeader = `
     // @grant       GM_setClipboard
     // @grant       GM_setValue
     // @grant       GM_xmlhttpRequest
-    // @grant       unsafeWindow
     // ==/UserScript==
 `.trim().split('\n').map(e => e.trim()).join('\n');
 
