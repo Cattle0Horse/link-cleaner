@@ -19,7 +19,7 @@ const getCurrentDisabledHostKey = () => getCurrentHostKey(DISABLED_HOST_KEY_PREF
 const getCurrentEnabledHostKey = () => getCurrentHostKey(ENABLED_HOST_KEY_PREFIX);
 
 const getHostCleanMode = async () => {
-    const mode = await GM.getValue(HOST_CLEAN_MODE_KEY, HOST_CLEAN_MODE_BLACKLIST);
+    const mode = await GM.getValue(HOST_CLEAN_MODE_KEY, HOST_CLEAN_MODE_WHITELIST);
     return mode === HOST_CLEAN_MODE_WHITELIST ? HOST_CLEAN_MODE_WHITELIST : HOST_CLEAN_MODE_BLACKLIST;
 }
 
