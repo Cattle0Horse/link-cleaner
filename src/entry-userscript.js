@@ -71,6 +71,29 @@ const getCurrentHostCleanStatus = async () => {
 
 // 处理<a>标签
 
+const cleanedLinkTargets = new WeakMap;
+
+const getAnchorForEvent = event => {
+    if (typeof event.composedPath === 'function') {
+        return event.composedPath().find(e => e instanceof HTMLAnchorElement);
+    }
+    return event.target instanceof Element ? event.target.closest('a') : null;
+}
+
+const setupCleanedLinkClickProtection = () => {
+    const protect = event => {
+        const link = getAnchorForEvent(event);
+        const target = link && cleanedLinkTargets.get(link);
+        if (!target) return;
+
+        if (link.href !== target) link.href = target;
+        event.stopImmediatePropagation();
+    };
+
+    addEventListener('click', protect, true);
+    addEventListener('auxclick', protect, true);
+}
+
 /**
  * @param {HTMLAnchorElement} e
  */
@@ -80,6 +103,7 @@ const cleanLinkForDOM = e => {
         .then(t => {
             const r = t.toString()
             if (e.href === r) return;
+            cleanedLinkTargets.set(e, r);
             console.log('Link cleaner:', e, e.href, '->', (e.href = t.toString()));
         })
         .catch(err => console.warn('Link cleaner:', e, e.href, 'Failed to clean', err));
@@ -145,6 +169,7 @@ const startAutoClean = () => cleanLocation().then(cleaned => {
     if (cleaned) return;
 
     setupHistoryHook();
+    setupCleanedLinkClickProtection();
 
     document.querySelectorAll('a').forEach(cleanLinkForDOM);
 
