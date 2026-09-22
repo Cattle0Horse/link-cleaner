@@ -4,19 +4,10 @@ import cleanLink from './link-cleaner.js';
 const HOST_CLEAN_MODE_KEY = 'hostCleanMode';
 const HOST_CLEAN_MODE_BLACKLIST = 'blacklist';
 const HOST_CLEAN_MODE_WHITELIST = 'whitelist';
-const DISABLED_HOST_KEY_PREFIX = 'disabledHost:';
-const ENABLED_HOST_KEY_PREFIX = 'enabledHost:';
+const DISABLED_HOSTS_KEY = 'disabledHosts';
+const ENABLED_HOSTS_KEY = 'enabledHosts';
 
 const getCurrentHostname = () => location.hostname.toLowerCase();
-
-const getCurrentHostKey = prefix => {
-    const hostname = getCurrentHostname();
-    return hostname && prefix + hostname;
-}
-
-const getCurrentDisabledHostKey = () => getCurrentHostKey(DISABLED_HOST_KEY_PREFIX);
-
-const getCurrentEnabledHostKey = () => getCurrentHostKey(ENABLED_HOST_KEY_PREFIX);
 
 const getHostCleanMode = async () => {
     const mode = await GM.getValue(HOST_CLEAN_MODE_KEY, HOST_CLEAN_MODE_WHITELIST);
@@ -28,28 +19,18 @@ const setHostCleanMode = async mode => GM.setValue(
     mode === HOST_CLEAN_MODE_WHITELIST ? HOST_CLEAN_MODE_WHITELIST : HOST_CLEAN_MODE_BLACKLIST
 );
 
-const isCurrentHostDisabled = async () => {
-    const key = getCurrentDisabledHostKey();
-    return !!key && !!await GM.getValue(key, false);
+const isCurrentHostInList = async key => {
+    const hostname = getCurrentHostname();
+    return !!hostname && (await GM.getValue(key, [])).includes(hostname);
 }
 
-const setCurrentHostDisabled = async disabled => {
-    const key = getCurrentDisabledHostKey();
-    if (!key) return false;
-    await GM.setValue(key, !!disabled);
-    return true;
-}
-
-const isCurrentHostEnabled = async () => {
-    const key = getCurrentEnabledHostKey();
-    return !!key && !!await GM.getValue(key, false);
-}
-
-const setCurrentHostEnabled = async enabled => {
-    const key = getCurrentEnabledHostKey();
-    if (!key) return false;
-    await GM.setValue(key, !!enabled);
-    return true;
+const setCurrentHostInList = async (key, included) => {
+    const hostname = getCurrentHostname();
+    const hosts = await GM.getValue(key, []);
+    const nextHosts = included
+        ? [...new Set([...hosts, hostname])].sort()
+        : hosts.filter(host => host !== hostname);
+    await GM.setValue(key, nextHosts);
 }
 
 const getCurrentHostCleanStatus = async () => {
@@ -61,11 +42,11 @@ const getCurrentHostCleanStatus = async () => {
     }
 
     if (mode === HOST_CLEAN_MODE_WHITELIST) {
-        const enabled = await isCurrentHostEnabled();
+        const enabled = await isCurrentHostInList(ENABLED_HOSTS_KEY);
         return {hostname, mode, disabled: false, enabled, shouldClean: enabled};
     }
 
-    const disabled = await isCurrentHostDisabled();
+    const disabled = await isCurrentHostInList(DISABLED_HOSTS_KEY);
     return {hostname, mode, disabled, enabled: false, shouldClean: !disabled};
 }
 
@@ -208,21 +189,13 @@ const registerMenus = async currentHostStatus => {
     if (hostname) {
         if (isWhitelistMode) {
             GM.registerMenuCommand((enabled ? '❌禁用当前网站清洗' : '✅启用当前网站清洗') + `（${hostname}）`, async () => {
-                const enabled = await isCurrentHostEnabled();
-                const succeeded = await setCurrentHostEnabled(!enabled);
-                if (!succeeded) {
-                    alert('当前页面不支持按网站设置清洗白名单');
-                    return;
-                }
+                const enabled = await isCurrentHostInList(ENABLED_HOSTS_KEY);
+                await setCurrentHostInList(ENABLED_HOSTS_KEY, !enabled);
             });
         } else {
             GM.registerMenuCommand((disabled ? '✅启用当前网站清洗' : '❌禁用当前网站清洗') + `（${hostname}）`, async () => {
-                const disabled = await isCurrentHostDisabled();
-                const succeeded = await setCurrentHostDisabled(!disabled);
-                if (!succeeded) {
-                    alert('当前页面不支持按网站禁用清洗');
-                    return;
-                }
+                const disabled = await isCurrentHostInList(DISABLED_HOSTS_KEY);
+                await setCurrentHostInList(DISABLED_HOSTS_KEY, !disabled);
             });
         }
     }
