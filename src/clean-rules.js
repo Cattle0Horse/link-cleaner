@@ -524,6 +524,14 @@ export default [
         clean: cleanFactory.getRedirectFromBody(s => s.match(/"url":"(.+?)","btns"/)[1].replace(/&#x([a-f\d]+);/gi, (_, m) => String.fromCharCode(parseInt(m, 16)))),
     },
     {
+        name: 'WXWork URI confirmation',
+        match: matchFactory.chain(
+            matchFactory.hostpath('open.work.weixin.qq.com', '/wwopen/uriconfirm'),
+            matchFactory.hasSearchParam('uri'),
+        ),
+        clean: cleanFactory.urlDecodeSearchParam('uri'),
+    },
+    {
         name: 'Weixin article',
         match: matchFactory.hostpath('mp.weixin.qq.com', '/s'),
         clean: cleanFactory.whitelist(new Set(['__biz', 'mid', 'idx', 'sn', 'tempkey', 'poc_token'])),
