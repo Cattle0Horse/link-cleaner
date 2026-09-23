@@ -9,7 +9,6 @@
     "node": ">=17.5.0"
   },
   "scripts": {
-    "test": "node test.js",
     "build": "node build-userscript.js"
   },
   "devDependencies": {
